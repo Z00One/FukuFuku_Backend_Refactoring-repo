@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { PrismaService } from "src/prisma.service";
 import { Board, Prisma } from "@prisma/client";
 import { CreateBoardDto } from "./dto/create-board.dto";
@@ -18,7 +18,7 @@ export class BoardRepository {
     return this.prismaService.board.findMany({
       take: TAKE_NUM,
       skip: lastId ? 0 : undefined,
-      ...(lastId && { cursor: { id: lastId + 1 } }),
+      ...(lastId && { cursor: { id: lastId - 1 } }),
       where: searchOption["where"],
       orderBy: searchOption["orderBy"],
       include: {
