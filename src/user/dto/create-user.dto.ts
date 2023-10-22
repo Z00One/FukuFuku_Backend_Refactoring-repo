@@ -12,9 +12,9 @@ export class CreateUserDto {
 
   @IsNotEmptyString()
   @MaxLength(10)
-  readonly firstName: string;
+  readonly family_name: string;
   
   @IsNotEmptyString()
   @MaxLength(15)
-  readonly lastName: string;
+  readonly given_name: string;
 }

@@ -14,7 +14,11 @@ export class TagsController {
 
   @Get('/tagName/:tagName')
   async findTagByName(@Param('tagName') tagName: string): Promise<Tag> {
+    console.log(tagName);
+
     const deCodedTagName = decodeURIComponent(tagName);
+    console.log(deCodedTagName);
+
     return await this.tagsService.findTagByName(deCodedTagName);
   }
 

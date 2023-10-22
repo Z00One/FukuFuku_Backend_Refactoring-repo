@@ -2,7 +2,6 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { UserService } from '../user/user.service';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { GOauthService } from './g-oauth/g-oauth.service';
 import { User } from '@prisma/client';
 
 @Injectable()
@@ -11,11 +10,18 @@ export class AuthService {
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-    private readonly gOauthService: GOauthService,
   ) { }
 
-  async signByGOuth(req) {
-    const googleUserInfo: User = this.gOauthService.googleLogin(req);
+  decodeBase64(credential: string) {
+    const base64Payload = credential.split('.')[1];
+    const payloadBuffer = Buffer.from(base64Payload, 'base64');
+    const updatedJwtPayload = JSON.parse(payloadBuffer.toString());
+    return updatedJwtPayload;
+  }
+
+  async signByGOuth(credential: string) {
+    const { email, picture, given_name, family_name } = this.decodeBase64(credential);
+    const googleUserInfo = { email, picture, given_name, family_name }
 
     if (
       googleUserInfo.email.split('@')[1] !==
@@ -49,21 +55,20 @@ export class AuthService {
       const refreshPayload = this.jwtService.decode(
         tokens.refreshToken,
       );
-
       // access token, refresh token의 발행 정보를 대조
       if (accessPayload === null || refreshPayload === null) {
         return false;
       }
 
       const isAuthenticable =
-        accessPayload['id'] !== refreshPayload['id'] && accessPayload['nickName'] !== refreshPayload['nickName']
+        accessPayload['id'] === refreshPayload['id'] && accessPayload['nickName'] === refreshPayload['nickName']
 
-      if (isAuthenticable) {
+      if (!isAuthenticable) {
         return false;
       }
 
       const userInfo = await this.userService.findUser(
-        { nickName: refreshPayload['nickName'] }
+        { id: refreshPayload['id'] }
       );
 
       const newAccesstoken = await this.generateToken(
@@ -87,7 +92,6 @@ export class AuthService {
       nickName: userInfo.nickName,
       id: userInfo.id
     };
-
     const token = await this.jwtService.signAsync(payload, {
       secret: this.configService.get<string>(type),
       expiresIn: this.configService.get<string>(expiresIn),

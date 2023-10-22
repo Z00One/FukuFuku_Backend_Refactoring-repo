@@ -1,23 +1,31 @@
-import { ConflictException, Injectable, NotFoundException, UnprocessableEntityException, UnsupportedMediaTypeException } from '@nestjs/common';
-import { UserRepository } from './user.repository';
-import { CreateUserDto } from './dto/create-user.dto';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+  UnprocessableEntityException,
+  UnsupportedMediaTypeException,
+} from "@nestjs/common";
+import { UserRepository } from "./user.repository";
+import { CreateUserDto } from "./dto/create-user.dto";
 import {
   UpdateUserIntroductionDto,
   UpdateUserNicknameDto,
-} from './dto/update-user.dto';
-import { UserDeleteWhereDto } from './dto/delete-user.dto';
-import { deleteObject } from '../common/util/deleteObjectFromS3';
+} from "./dto/update-user.dto";
+import { UserDeleteWhereDto } from "./dto/delete-user.dto";
+import { deleteObject } from "../common/util/deleteObjectFromS3";
+import { UserImageRepository } from "./userImage.repository";
 
 @Injectable()
 export class UserService {
   constructor(
     private readonly userRepository: UserRepository,
-  ) { }
+    private readonly userImageRepository: UserImageRepository,
+  ) {}
 
   async findUser(uniqueValue: {
-    id?: number,
-    email?: string,
-    nickName?: string
+    id?: number;
+    email?: string;
+    nickName?: string;
   }) {
     return this.userRepository.findOne(uniqueValue);
   }
@@ -42,7 +50,7 @@ export class UserService {
   }
 
   // 닉네임 중복 체크
-  async nicknameDuplicateCheck(nickName: string, type = 'check') {
+  async nicknameDuplicateCheck(nickName: string, type = "check") {
     const isExist = await this.findUser({ nickName });
 
     // 없는 경우
@@ -51,7 +59,7 @@ export class UserService {
     }
 
     // 있는 경우
-    if (type === 'check') {
+    if (type === "check") {
       return false;
     }
 
@@ -84,9 +92,21 @@ export class UserService {
 
   // 회원 탈퇴
   async withdraw(userInfo: UserDeleteWhereDto) {
+    // 사진 삭제
+    const previousUserInfo = await this.userImageRepository.findOne({
+      u_id: userInfo.where.id,
+    });
+
+    if (previousUserInfo !== null) {
+      const { key } = previousUserInfo;
+
+      deleteObject([key]);
+    }
+
     const result = await this.userRepository.deleteUser({
       id: userInfo.where.id,
     });
+
     return result;
   }
 
@@ -94,7 +114,7 @@ export class UserService {
   async editPicture(id, req) {
     // 이미지 파일 보내지 않은 경우
     if (!req?.file) {
-      throw new UnprocessableEntityException('No file');
+      throw new UnprocessableEntityException("No file");
     }
     const fileValidationError = req.fileValidationError;
     // 이미지 파일 형식이 맞지 않은 경우
@@ -105,37 +125,46 @@ export class UserService {
     const picture = req.file.location;
     const updateUserPictureDto = { where: { id }, data: { picture } };
 
-    // 기존 S3 이미지 삭제
-    const previousUserInfo = await this.userRepository.findOne({ id });
+    // 기존 S3 이미지 삭제 - userImageRepo 를 조회해 key를 가져와 제거
+    const previousUserInfo = await this.userImageRepository.findOne({
+      u_id: id,
+    });
+
     if (previousUserInfo !== null) {
-    }
-    const key = previousUserInfo.picture;
+      const { key } = previousUserInfo;
 
-    // S3 이미지 형식일때 삭제
-    if (key.split('.')[1] !== 'google') {
       deleteObject([key]);
+
+      await this.userImageRepository.update({
+        u_id: id,
+        url: picture,
+        key: req.file.key,
+      });
     }
 
-    // 새로운 이미지 저장
     const userInfo = await this.userRepository.updateUser(updateUserPictureDto);
-
+    // 새로운 이미지 저장
     return { picture: userInfo.picture };
   }
 
   // 마이페이지 이동
-  async mypage(nickName: string) {
+  async mypage(nickName: string, page: number = 0) {
     // 유저 닉네임으로 조회 - 닉네임은 기본적으로 email과 같은 값을 가지도록 해 참조하지 못하는 일은 생기지 않을 것임
-    const userPage = await this.userRepository.getUserPage(nickName);
+    const userPage = await this.userRepository.getUserPage(nickName, page);
 
     if (!userPage.length) throw new NotFoundException();
-    return userPage;
+    return userPage[0].board;
   }
 
   // 사용자 본인이 좋아요 눌렀던 게시글 가져오기
-  async myLiked(client: string | {
-    [key: string]: any;
-  }) {
-    const id = parseInt(client['id']);
+  async myLiked(
+    client:
+      | string
+      | {
+          [key: string]: any;
+        },
+  ) {
+    const id = parseInt(client["id"]);
     return this.userRepository.getLiked(id);
   }
 }

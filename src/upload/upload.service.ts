@@ -1,16 +1,20 @@
-import { Injectable, NotFoundException, UnprocessableEntityException, UnsupportedMediaTypeException } from '@nestjs/common';
-import { Request } from 'express';
-import { deleteObject } from '../common/util/deleteObjectFromS3';
-import { UploadRepository } from './upload.repository';
+import {
+  Injectable,
+  NotFoundException,
+  UnprocessableEntityException,
+  UnsupportedMediaTypeException,
+} from "@nestjs/common";
+import { Request } from "express";
+import { deleteObject } from "../common/util/deleteObjectFromS3";
+import { UploadRepository } from "./upload.repository";
 
 @Injectable()
 export class UploadService {
-  constructor(private uploadRepository: UploadRepository) { }
+  constructor(private uploadRepository: UploadRepository) {}
 
   /** 업로드 결과 */
   async upload(req: Request) {
-
-    const fileValidationError = req['fileValidationError'];
+    const fileValidationError = req["fileValidationError"];
     // 이미지 파일 형식이 맞지 않은 경우
     if (fileValidationError === "format doesn't fit") {
       throw new UnsupportedMediaTypeException();
@@ -18,12 +22,12 @@ export class UploadService {
 
     // 이미지 파일 보내지 않은 경우
     if (!req?.file) {
-      throw new UnprocessableEntityException('No file');
+      throw new UnprocessableEntityException("No file");
     }
 
     // url, key 가져오기
-    const url = req.file['location'];
-    const key = req.file['key'];
+    const url = req.file["location"];
+    const key = req.file["key"];
 
     // 저장
     this.uploadRepository.storeTempImage(url, key);
@@ -32,10 +36,7 @@ export class UploadService {
   }
 
   /** TimeOut이 끝나면 board DB 확인 */
-  async check(fileInfo: {
-    url: string,
-    key: string
-  }) {
+  async check(fileInfo: { url: string; key: string }) {
     const timeOut = 1 * 60 * 1000;
 
     // 연결된 게시글이 있는 지 확인
@@ -49,7 +50,7 @@ export class UploadService {
 
     // 없으면 DB, S3로부터 삭제
     if (!editResult) {
-      await this.uploadRepository.deleteTempImage(fileInfo.url, fileInfo.key);
+      await this.uploadRepository.deleteTempImage(fileInfo.url);
       deleteObject([fileInfo.key]);
     }
   }
@@ -65,7 +66,7 @@ export class UploadService {
       // S3
       deleteObject([key]);
     } catch (error) {
-      throw new NotFoundException('No Image');
+      throw new NotFoundException("No Image");
     }
   }
 }

@@ -32,7 +32,6 @@ export class RefreshGuard implements CanActivate {
     if (!tokens) {
       throw new UnprocessableEntityException();
     }
-
     try {
       await this.jwtService.verifyAsync(tokens.refreshToken, {
         secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
@@ -56,19 +55,11 @@ export class RefreshGuard implements CanActivate {
         errorName === 'JsonWebTokenError' ||
         errorName === 'UnauthorizedException'
       ) {
-        const response = context.switchToHttp().getResponse();
-
-        await this.reLogin(response);
+        throw new UnauthorizedException();
       } else {
         throw new InternalServerErrorException(error);
       }
     }
-  }
-
-  // 구글로그인 경로로 redirect
-  async reLogin(response: Response) {
-    const loginUrl = this.configService.get<string>('GOAUTH_RELOGIN_URL');
-    response.redirect(loginUrl);
   }
 
   // 토큰 추출

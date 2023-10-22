@@ -27,6 +27,8 @@ export class ReplysController {
   // 답글 생성
   @Post()
   async createReply(@Body() createReplyDto: CreateReplyDto): Promise<Reply> {
+    console.log(createReplyDto);
+
     return this.replyService.createReply(createReplyDto);
   }
 

@@ -11,6 +11,7 @@ import {
   Headers,
   UseGuards,
   HttpCode,
+  Query,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import {
@@ -23,10 +24,10 @@ import { UserDeleteWhereDto } from './dto/delete-user.dto';
 import { fileInterceptor } from '../common/util/upload.interceptor';
 import { AccessGuard } from 'src/common/guard/access.guard';
 import { UserRoleGuard } from 'src/common/guard/role.guard';
-@Controller('user')
+@Controller("user")
 export class UserController {
   constructor(private readonly userService: UserService) { }
-  
+
   // 닉네임 중복 체크
   @UseGuards(AccessGuard)
   @Get('/check/:nickName')
@@ -87,8 +88,10 @@ export class UserController {
 
   // 유저 페이지로 이동
   @Get('/:nickName')
-  async userPage(@Param('nickName') nickName: string) {
-    const userPage = await this.userService.mypage(nickName);
+  async userPage(
+    @Param('nickName') nickName: string,
+    @Query() option: { page: number }) {
+    const userPage = await this.userService.mypage(nickName, option.page);
     return userPage;
   }
 

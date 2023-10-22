@@ -37,23 +37,10 @@ export class TagRepository {
   }
 
   // 태그 생성
-  async createTags(tagDto: TagDto): Promise<Tag> {
-    const { name } = tagDto;
-
-    // 만약 태그가 존재한다면 해당 태그를 반환
-    const tag = await this.prismaService.tag.findUnique({
-      where: {
-        name,
-      },
-    });
-
-    if (tag) {
-      return tag;
-    }
-
+  async createTags(tagdto: TagDto): Promise<Tag> {
     return await this.prismaService.tag.create({
       data: {
-        name,
+        name: tagdto.name,
       },
     });
   }

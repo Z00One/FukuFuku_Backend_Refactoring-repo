@@ -1,42 +1,37 @@
 import {
   Controller,
-  Get,
-  Req,
   UseGuards,
   Request,
   Body,
   Post,
-  HttpCode,
+  Get,
 } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
 import { RefreshGuard } from 'src/common/guard/refresh.guard';
 import { AuthService } from './auth.service';
-import { config } from 'dotenv';
-import { responseFormat, OK, Created } from '../common/util/responseFormat';
-
-config();
+import { responseFormat, Created, OK } from '../common/util/responseFormat';
+import { AccessGuard } from 'src/common/guard/access.guard';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Get()
-  @UseGuards(AuthGuard('google'))
-  googleAuth(@Req() req) {}
-
-  @Get(process.env.CALLBACK_PATH)
-  @UseGuards(AuthGuard('google'))
-  async googleAuthRedirect(@Req() req) {
-    const data = await this.authService.signByGOuth(req);
-    return responseFormat(OK, data);
+  @Post()
+  async googleAuth(@Body('credential') credential) {
+    const data = await this.authService.signByGOuth(credential);
+    return data;
   }
 
-  @HttpCode(201)
   @UseGuards(RefreshGuard)
   @Post('refresh')
   async refresh(@Request() req) {
     const accessToken = req.body.accessToken;
 
     return responseFormat(Created, { accessToken });
+  }
+
+  @UseGuards(AccessGuard)
+  @Get('')
+  verifyUser() {
+    return OK;
   }
 }

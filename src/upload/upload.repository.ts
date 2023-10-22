@@ -1,23 +1,22 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma.service';
-import { BoardImage } from '@prisma/client';
+import { Injectable } from "@nestjs/common";
+import { PrismaService } from "../prisma.service";
+import { BoardImage } from "@prisma/client";
 
 @Injectable()
 export class UploadRepository {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   async findImage(url: string): Promise<BoardImage> {
     return this.prisma.boardImage.findFirst({
       where: {
-        url
-      }
+        url,
+      },
     });
   }
 
   async deleteImage(url: string) {
-
     return this.prisma.boardImage.delete({
-      where: { url }
+      where: { url },
     });
   }
 
@@ -25,19 +24,16 @@ export class UploadRepository {
     return this.prisma.image.create({
       data: {
         url,
-        key
-      }
-    })
+        key,
+      },
+    });
   }
 
-  async deleteTempImage(url: string, key: string) {
+  async deleteTempImage(url: string) {
     return this.prisma.image.delete({
       where: {
-        url_key: {
-          url,
-          key
-        }
-      }
-    })
+        url,
+      },
+    });
   }
 }

@@ -3,8 +3,6 @@ import { UserModule } from '../user/user.module';
 import { JwtModule } from '@nestjs/jwt';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { GOauthService } from './g-oauth/g-oauth.service';
-import { GOuthStrategy } from './g-oauth/g-oauth.strategy';
 
 @Module({
   imports: [
@@ -13,7 +11,7 @@ import { GOuthStrategy } from './g-oauth/g-oauth.strategy';
       global: true,
     }),
   ],
-  providers: [AuthService, GOauthService, GOuthStrategy],
+  providers: [AuthService],
   controllers: [AuthController],
   exports: [AuthService],
 })
