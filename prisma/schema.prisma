@@ -101,6 +101,7 @@ model Reply {
 model Image {
   url String @id @db.VarChar(100)
   key String
+  expiredAt DateTime
 }
 
 model UserImage {
