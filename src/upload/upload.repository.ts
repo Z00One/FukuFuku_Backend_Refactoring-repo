@@ -25,6 +25,17 @@ export class UploadRepository {
       data: {
         url,
         key,
+        expiredAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
+      },
+    });
+  }
+
+  async getAllTempImage() {
+    return this.prisma.image.findMany({
+      where: {
+        expiredAt: {
+          lt: new Date(),
+        },
       },
     });
   }
