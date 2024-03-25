@@ -7,6 +7,7 @@ import {
 import { Request } from "express";
 import { deleteObject } from "../common/util/deleteObjectFromS3";
 import { UploadRepository } from "./upload.repository";
+import { Cron } from "@nestjs/schedule";
 
 @Injectable()
 export class UploadService {
@@ -35,26 +36,6 @@ export class UploadService {
     return { url, key };
   }
 
-  /** TimeOut이 끝나면 board DB 확인 */
-  async check(fileInfo: { url: string; key: string }) {
-    const timeOut = 1 * 60 * 1000;
-
-    // 연결된 게시글이 있는 지 확인
-    const editResult = await new Promise((resolve) => {
-      setTimeout(async () => {
-        console.log("timeOut");
-        const result = await this.uploadRepository.findImage(fileInfo.url);
-        resolve(result);
-      }, timeOut);
-    });
-
-    // 없으면 DB, S3로부터 삭제
-    if (!editResult) {
-      await this.uploadRepository.deleteTempImage(fileInfo.url);
-      deleteObject([fileInfo.key]);
-    }
-  }
-
   /** image 삭제 - DB 데이터 삭제, S3 객체 삭제 */
   async deleteImage(url: string) {
     try {
@@ -68,5 +49,18 @@ export class UploadService {
     } catch (error) {
       throw new NotFoundException("No Image");
     }
+  }
+
+  @Cron("0 0 3 * * *")
+  async removeExpiredImage() {
+    // db에서 이미지 정보 가져오기
+    const images = await this.uploadRepository.getAllTempImage();
+
+    images.forEach(async (image) => {
+      Promise.all([
+        this.uploadRepository.deleteTempImage(image.url),
+        deleteObject([image.key]),
+      ]);
+    });
   }
 }
