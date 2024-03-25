@@ -26,9 +26,6 @@ export class UploadController {
     // 이미지 업로드
     const result = await this.uploadService.upload(req);
 
-    // 비동기적으로 이미지 체크
-    this.uploadService.check(result);
-
     return { url: result.url };
   }
 
